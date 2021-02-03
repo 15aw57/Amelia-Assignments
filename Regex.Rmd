@@ -1,0 +1,34 @@
+---
+title: "Regex"
+author: "Amelia Walsh"
+date: "2/3/2021"
+output: html_document
+---
+#Save Measurements Data as an object
+```{r}
+MData = read.csv("measurements.csv")
+```
+
+#Load Libraries
+```{r}
+library(dplyr)
+```
+
+#Add a new column called Sp that shortens the genus name in the Organism column to only the first letter and period. 
+
+```{r}
+#Use dplyr to select the organism column and mutate it into a new column
+MData = MData %>%
+  #Use Regex to change the format of the Organism name
+  mutate(Sp = gsub("(\\w)\\w+\\s","\\1. ",Organism))
+```
+
+# Use a dplyr command to create a new dataset BUT with Sp column instead of the Organism column, moved to the beginning in place of the original Organism column.
+```{r}
+NewDat = MData %>%
+  select(Sp, Limb.width, Limb.length, Observer)
+```
+
+# Save the dataset as a new file called MeasShort.csv
+
+Commit these changes using Git in RStudio

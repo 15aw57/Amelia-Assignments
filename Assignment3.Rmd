@@ -1,0 +1,115 @@
+---
+title: "Assignment 3"
+author: "Amelia Walsh"
+date: "1/27/2021"
+output: html_document
+---
+### Project Info
+Date: January 27, 2021
+
+Link: https://github.com/15aw57/Amelia-Assignments
+
+### Load Data
+```{r}
+MyData = read.csv("InputData/FallopiaData.csv")
+
+#Check out data
+str(MyData)
+```
+
+### Remove rows with ‘Total’ biomass < 60
+```{r}
+#Load necessary libraries
+library(dplyr)
+library(knitr)
+
+#Use "filter" to remove rows from MyData
+MyData = 
+  MyData %>%
+  filter(Total<60)
+```
+
+### Reorder the columns so that they are in the order: ‘Total’, ‘Taxon’, ‘Scenario’, ‘Nutrients’, and remove the other columns
+```{r}
+#Use "select" to remove unnecessary columns
+MyData =
+  MyData %>% 
+  select(Total, Taxon, Scenario, Nutrients) %>%
+  #Use arrange to reorder columns
+  arrange(Total, Taxon, Scenario, Nutrients)
+  
+```
+
+### Make a new column TotalG, which converts the ‘Total’ column from mg to grams AND replace Total with TotalG, and add it to the dataset.
+```{r}
+#Use "Mutate" to create a new column that equals 'Total'/1000
+MyData =
+  MyData %>%
+  mutate(TotalG = Total/1000) %>%
+  #Use select to remove 'Total' column
+  select(-Total)
+```
+
+### Write a custom function that will take two inputs from the user: 1. a vector of data to process (e.g. column from a data.frame object) and 2. a string that defines what calculation to perform.
+- if string #2 is "Average" then calculate the average value for the column named in vector #1
+- if string #2 is "Sum" then calculate the sum of values for the column named in vector #1
+- if string #2 is "Observations" then count the number of observed values for the column named in vector #1
+- if string #2 is anything else, then output an error to the user 
+
+```{r}
+#Create a custom function with two inputs
+calc  = function(vector,calctype){
+  
+  #If/Then function that will return the average of the vector when "Average" is input
+  if(calctype == "Average"){
+    return(mean(vector))
+  }
+  
+  #Else/If function that will return the Sum of the vector when "Sum" is input
+  else if(calctype == "Sum"){
+    return(sum(vector))
+  }
+  
+  #Else/If function that will return number of observations in vector when "Observations" is input
+  else if(calctype == "Observations"){
+    return(NROW(vector))
+    
+    
+  }
+  
+  #Function that will return error message when anything other than previous commands are is input
+  else
+    return("Error in calctype")
+    }
+
+```
+
+### Write some R code that uses your function to count the total number of observations in the 'Taxon' column.
+```{r}
+#Use custom function from prior code
+calc(MyData$Taxon, "Observations")
+```
+
+### Write some R code that uses your function  to calculate the average TotalG for each of the two Nutrient concentrations.
+```{r}
+#Use dplyr to filter "high" nutrients from MyData
+Dat2 = MyData %>%
+  filter(Nutrients == "high")
+
+#Calculate the average TotalG of high nutrients using custom function
+  calc(Dat2$TotalG, "Average") 
+```
+```{r}
+#Use dplyr to filter "low" nutrients from MyData
+Dat3 = MyData %>%
+  filter(Nutrients == "low")
+
+#Calculate the average TotalG of low nutrients using custom function
+  calc(Dat3$TotalG, "Average") 
+```
+
+### Write (i.e. save) the new data to a file called "WrangledData.csv" in the Output folder. 
+```{r}
+write.csv(MyData,"WrangledData.csv") 
+```
+
