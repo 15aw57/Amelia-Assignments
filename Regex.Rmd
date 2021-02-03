@@ -30,5 +30,7 @@ NewDat = MData %>%
 ```
 
 # Save the dataset as a new file called MeasShort.csv
+```{r}
+write.csv(NewDat,"MeasShort.csv") 
+```
 
-Commit these changes using Git in RStudio
