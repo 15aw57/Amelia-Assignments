@@ -1,0 +1,137 @@
+---
+title: "Week 6 Assignment"
+author: "Amelia Walsh"
+date: "2/25/2021"
+output: html_document
+---
+Load Libraries
+```{r}
+library(BiocManager)
+library(reshape2)
+library(rentrez)
+library(ggtree)
+library(annotate)
+library(Biostrings)
+library(GenomeInfoDb)
+library(genbankr)
+library(ape)
+library(ggplot2)
+library(knitr)
+```
+
+### Use BLAST to run an alignment with the unknown sequence
+
+Name the mystery sequence
+```{r}
+mystery = c("ATGTCTGATAATGGACCCCAAAATCAGCGAAATGCACCCCGCATTACGTTTGGTGGACCCTCAGATTCAA
+CTGGCAGTAACCAGAATGGAGAACGCAGTGGGGCGCGATCAAAACAACGTCGGCCCCAAGGTTTACCCAA
+TAATACTGCGTCTTGGTTCACCGCTCTCACTCAACATGGCAAGGAAGACCTTAAATTCCCTCGAGGACAA
+GGCGTTCCAATTAACACCAATAGCAGTCCAGATGACCAAATTGGCTACTACCGAAGAGCTACCAGACGAA
+TTCGTGGTGGTGACGGTAAAATGAAAGATCTCAGTCCAAGATGGTATTTCTACTACCTAGGAACTGGGCC
+AGAAGCTGGACTTCCCTATGGTGCTAACAAAGACGGCATCATATGGGTTGCAACTGAGGGAGCCTTGAAT
+ACACCAAAAGATCACATTGGCACCCGCAATCCTGCTAACAATGCTGCAATCGTGCTACAACTTCCTCAAG
+GAACAACATTGCCAAAAGGCTTCTACGCAGAAGGGAGCAGAGGCGGCAGTCAAGCCTCTTCTCGTTCCTC
+ATCACGTAGTCGCAACAGTTCAAGAAATTCAACTCCAGGCAGCAGTAGGGGAACTTCTCCTGCTAGAATG
+GCTGGCAATGGCGGTGATGCTGCTCTTGCTTTGCTGCTGCTTGACAGATTGAACCAGCTTGAGAGCAAAA
+TGTCTGGTAAAGGCCAACAACAACAAGGCCAAACTGTCACTAAGAAATCTGCTGCTGAGGCTTCTAAGAA
+GCCTCGGCAAAAACGTACTGCCACTAAAGCATACAATGTAACACAAGCTTTCGGCAGACGTGGTCCAGAA
+CAAACCCAAGGAAATTTTGGGGACCAGGAACTAATCAGACAAGGAACTGATTACAAACATTGGCCGCAAA
+TTGCACAATTTGCCCCCAGCGCTTCAGCGTTCTTCGGAATGTCGCGCATTGGCATGGAAGTCACACCTTC
+GGGAACGTGGTTGACCTACACAGGTGCCATCAAATTGGATGACAAAGATCCAAATTTCAAAGATCAAGTC
+ATTTTGCTGAATAAGCATATTGACGCATACAAAACATTCCCACCAACAGAGCCTAAAAAGGACAAAAAGA
+AGAAGGCTGATGAAACTCAAGCCTTACCGCAGAGACAGAAGAAACAGCAAACTGTGACTCTTCTTCCTGC
+TGCAGATTTGGATGATTTCTCCAAACAATTGCAACAATCCATGAGCAGTGCTGACTCAACTCAGGCCTAA")
+```
+
+Run the mystery sequence through blast using "blastSequences". 
+```{r}
+mysteryBLAST = blastSequences(paste(mystery),as= 'data.frame',
+                            hitListSize = 50, timeout = 500)
+```
+
+Retrieve the lengths of similar alignments
+```{r}
+mysteryBLAST$Hit_len
+```
+
+Retrieve the species of the alignments
+```{r}
+mystseq = read.GenBank(mysteryBLAST$Hit_accession[1:3]) #Create an object to store the top 3 accession numbers
+attr(mystseq, "species") #Get the species names for the top 3 accession numbers
+```
+This unknown sequence appears to be part of the SARS-CoV-2 virus
+
+### Use MUSCLE to create a multiple alignment
+
+Put the accession numbers and sequences from the BLAST into a data frame called mysterydf
+```{r}
+mysterydf = data.frame(ID=mysteryBLAST$Hit_accession,Seq=mysteryBLAST$Hsp_hseq,
+                     stringsAsFactors = FALSE)
+```
+
+Separate the BLAST sequence into one column per nucleotide
+```{r}
+mysterysplit = sapply(mysterydf$Seq,strsplit,split="")
+```
+
+Give each sequence a unique name
+```{r}
+names(mysterysplit)= paste(1:nrow(mysterydf),mysterydf$ID,sep="_")
+```
+
+Convert "mysterysplit" into a DNAbin object so we can run MUSCLE on it
+```{r}
+mysterydna = as.DNAbin(mysterysplit)
+```
+
+Run MUSCLE on "mysterydna"
+```{r}
+alignmystery= muscle(mysterydna,quiet=F)
+```
+
+Check the multiple alignment for errors using ape package
+
+```{r alignplot}
+alignplot = checkAlignment(alignmystery,what=3)
+```
+There are no gaps and there is almost no variation between alignments, indicating very high similarity between sequences. This suggest that the mystery sequence is a highly conserved gene in the Covid-19 genome.
+
+### Create a Distance Matrix
+
+Estimate a pairwise distance matrix
+```{r}
+Myst = dist.dna(alignmystery, model = "K80") #Store the matrix estimation as an object
+```
+
+Create an nXn matrix
+```{r}
+mystmat = as.matrix(Myst) #Create an nXn matrix
+dim(mystmat) #Retrieve matrix dimensions
+```
+
+Convert matrix into linear matrix
+```{r}
+mystdat = melt(mystmat) #Convert matrix to linear matrix
+dim(mystdat) #retrieve new matrix dimensions
+```
+
+Display linear matrix in a graph
+```{r graphrep}
+graphrep = ggplot(data = mystdat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+```
+There is almost no variation between alignments
+
+### Create a Phylogenetic Tree
+
+```{r Phylo}
+MysTree = nj(Myst)
+Phylo = ggtree(MysTree)
+```
+The resulting phylogenetic tree indicates no differences between the alignments. Branch length was not removed because the resulting relationship tree may be misleading.
+
+
+
+
+
+

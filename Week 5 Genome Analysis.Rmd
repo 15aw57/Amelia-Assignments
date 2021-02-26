@@ -1,0 +1,98 @@
+---
+title: "Week 5 Intro to Genome Analysis"
+author: "Amelia Walsh"
+date: "2/22/2021"
+output: html_document
+---
+Install necessary packages:
+```{r}
+library(BiocManager)
+install(c("sangerseqR","annotate")) 
+library(sangerseqR)
+```
+Load downloaded genome data
+```{r}
+getwd()
+SeqStats = read.csv("./Data/DNA_Barcoding/BarcodePlateStats.csv")
+head(SeqStats)
+```
+Convert ab1 file to a SAngerseq object:
+```{r}
+ITS = read.abif("./Data/DNA_Barcoding/1Ipos_F_P1815443_064.ab1")
+
+ITSseq = sangerseq(ITS)
+str(ITSseq)
+```
+@ denotes different elements of an object (like $)
+```{r}
+ITSseq@primarySeqID
+```
+```{r}
+ITSseq@primarySeq
+```
+#### Here is an overview of the main slot elements:
+
+- primarySeqID – Identification of the primary sequence
+- primarySeq – The most likely sequence based on the florescence pattern
+- secondarySeqID – Secondary sequence ID. Secondary calls may not be present, but can occur when there is a signal for more than one base pair
+- secondarySeq – The secondary sequence
+- traceMatrix – A matrix containing the normalized signals for A,C,G,T.
+- peakPosMatrix – A matrix containing the position of the maximum peak values for each base.
+- peakAmpMatrix A matrix containing the maximum peak amplitudes for each base.
+
+Graph the trace
+```{r}
+chromatogram(ITSseq, width = 250, height = 2, showcalls = "both")
+```
+You can use the trim5 and trim3 parameters to trim the unsequenced base pairs. We can use it with the width parameter to ‘zoom in’. Let’s look closer at the early part of the sequence:
+```{r}
+chromatogram(ITSseq, width = 50, height = 2, trim3=1100, showcalls = "both")
+```
+
+A quick and easy method is to use the MakeBaseCalls() functions to ‘call’ the base pairs based on the strongest signals. This cuts out all the ambiguous peaks that probably represent noise in the fluoresence detectors.
+```{r}
+SeqX = makeBaseCalls(ITSseq)
+print(SeqX)
+```
+## BLAST
+
+We are using genes with fairly low mutation rates, so BLASTn is appropriate for finding a species-level match.
+
+You can simply copy and paste the sequence above into the sequence search box and you are ready to go. However, this quickly becomes impractical when you have more than a few sentences. That’s were the command line of R (or Python or Unix) comes in handy. The annotate package from Bioconductor has some tools for conducting a BLAST search in R.
+
+```{r}
+library(annotate)
+```
+
+If we wanted to automate the process, we should create a script that works for one sequence, then put it into a for loop to iterate through multiple sequences. First, pull together all of the lines of code that we need to get to the sequence and put them together in one place:
+```{r}
+ITS = read.abif("./Data/DNA_Barcoding/1Ipos_F_P1815443_064.ab1") # Read
+ITSseq = sangerseq(ITS) # Extract
+SeqX = makeBaseCalls(ITSseq) # Call 
+str(SeqX)
+```
+Send trimmed sequence to BLAST
+```{r}
+SeqXBlastDF<-blastSequences(paste(SeqX@primarySeq),as='data.frame')
+```
+```{r}
+nrow(SeqXBlastDF)
+```
+### The object is the first 10 sequences that matched our ‘query’ sequence. Some of the key parameters are outlined on the BLAST glossary. The main columns are:
+
+- Hit_accession – The accession code for each match
+- Hit_len – The length of the matching sequence, in number of base pairs
+- Hit_def – The name of the accession matching our query sequence
+- Hsp_score – A score representing the strength of the match. HSP stands for ‘High-scoring Segment Pair’. The details of how the score is calculated are a bit complicated, but the key is that the higher number represents a stronger match.
+- Hsp_evalue – An e-value is another way to measure the strength of the hit. It represents the probability of getting a match just by chance alone. Therefore smaller values generally indicate stronger matches.
+- Hsp_gaps – The number of gaps between the query sequence and its match.
+- Hsp_qseq – The query sequence (same for each hit)
+- Hsp_hseq – The ‘hit’ sequence
+
+
+
+
+
+
+
+

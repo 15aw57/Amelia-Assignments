@@ -1,0 +1,9 @@
+---
+title: "Week 6 Report"
+author: "Amelia Walsh"
+date: "2/26/2021"
+output: html_document
+---
+### Report:
+
+The mystery sequence was identified as a part of the SARS-CoV-2 viral genome using BLAST. This specific sequence appears to be a highly conserved gene or domain in the genome due to the fact that there were no differences between this sequence and its alignments
